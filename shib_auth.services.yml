@@ -1,0 +1,7 @@
+services:
+  authentication.shib_auth:
+    class: Drupal\shib_auth\Authentication\Provider\ShibbolethAuthenticationProvider
+    arguments: ["@config.factory", "@entity.manager"]
+    tags:
+      - { name: authentication_provider, priority: 100 }
+
