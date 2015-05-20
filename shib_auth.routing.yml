@@ -1,0 +1,8 @@
+shib_auth.shib_auth_controller_index:
+  path: '/shib_auth/index'
+  defaults:
+    _controller: '\Drupal\shib_auth\Controller\ShibAuthController::index'
+    _title: 'shib_auth Title'
+  requirements:
+    _permission: 'access content'
+
