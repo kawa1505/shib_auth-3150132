@@ -3,6 +3,7 @@
 namespace Drupal\shib_auth\EventSubscriber;
 
 use Drupal\Core\Render\Markup;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\shib_auth\Login\LoginHandler;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\HttpKernel\Event\GetResponseEvent;
@@ -15,6 +16,7 @@ use Drupal\Component\Utility\Xss;
  * @package Drupal\shib_auth\EventSubscriber
  */
 class ShibAuthSubscriber implements EventSubscriberInterface {
+  use StringTranslationTrait;
 
   /**
    * @var \Drupal\shib_auth\Login\LoginHandler
