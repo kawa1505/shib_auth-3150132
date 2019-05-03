@@ -36,6 +36,8 @@ shib_auth.logout_controller_logout:
     _title: 'logout'
   requirements:
     _permission: 'access content'
+  options:
+    no_cache: 'TRUE'
 
 shib_auth.logout_controller_logout_error:
   path: '/shib_logout/error'
