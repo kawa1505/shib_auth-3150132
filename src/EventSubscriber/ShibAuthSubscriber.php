@@ -2,6 +2,7 @@
 
 namespace Drupal\shib_auth\EventSubscriber;
 
+use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Render\Markup;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\shib_auth\Login\LoginHandler;
@@ -16,6 +17,7 @@ use Drupal\Component\Utility\Xss;
  * @package Drupal\shib_auth\EventSubscriber
  */
 class ShibAuthSubscriber implements EventSubscriberInterface {
+
   use StringTranslationTrait;
 
   /**
@@ -24,12 +26,19 @@ class ShibAuthSubscriber implements EventSubscriberInterface {
   private $lh;
 
   /**
+   * @var MessengerInterface
+   */
+  private $messenger;
+
+  /**
    * ShibAuthSubscriber constructor.
    *
    * @param \Drupal\shib_auth\Login\LoginHandler $lh
+   * @param \Drupal\Core\Messenger\MessengerInterface $messenger
    */
-  public function __construct(LoginHandler $lh) {
+  public function __construct(LoginHandler $lh, MessengerInterface $messenger) {
     $this->lh = $lh;
+    $this->messenger = $messenger;
   }
 
   /**
@@ -52,7 +61,8 @@ class ShibAuthSubscriber implements EventSubscriberInterface {
     }
 
     $current_path = \Drupal::service('path.current')->getPath();
-    if ($patterns && !\Drupal::service('path.matcher')->matchPath($current_path, $patterns)) {
+    if ($patterns && !\Drupal::service('path.matcher')
+        ->matchPath($current_path, $patterns)) {
       // Path doesn't match-- bail.
       return;
     }
@@ -61,7 +71,7 @@ class ShibAuthSubscriber implements EventSubscriberInterface {
 
     $debug_message = Xss::filter('<b>' . $this->t('Shibboleth debug information') . '</b>', $tags);
     $rendered_message = Markup::create($debug_message);
-    drupal_set_message($rendered_message);
+    $this->messenger->addStatus($rendered_message);
 
     $current_user = \Drupal::currentUser();
     if ($current_user->id()) {
@@ -73,7 +83,7 @@ class ShibAuthSubscriber implements EventSubscriberInterface {
       ];
       $debug_message = Xss::filter('<b>Drupal::currentUser():</b><br/><pre>' . print_r($user_info, TRUE) . '</pre>', $tags);
       $rendered_message = Markup::create($debug_message);
-      drupal_set_message($rendered_message);
+      $this->messenger->addStatus($rendered_message);
     }
 
     // Show $_SESSION variables.
@@ -90,12 +100,12 @@ class ShibAuthSubscriber implements EventSubscriberInterface {
     $debug_message = Xss::filter('<b>$_SESSION:</b><br/><pre>' . print_r($session_copy, TRUE) . '</pre>', $tags);
     unset($session_copy);
     $rendered_message = Markup::create($debug_message);
-    drupal_set_message($rendered_message);
+    $this->messenger->addStatus($rendered_message);
 
     // Show $_SERVER variables.
     $debug_message = Xss::filter('<b>$_SERVER:</b><br/><pre>' . print_r($_SERVER, TRUE) . '</pre>', $tags);
     $rendered_message = Markup::create($debug_message);
-    drupal_set_message($rendered_message);
+    $this->messenger->addStatus($rendered_message);
 
     // Show config settings.
     $settings = $config->getRawData();
@@ -104,7 +114,7 @@ class ShibAuthSubscriber implements EventSubscriberInterface {
     ksort($settings);
     $debug_message = Xss::filter('<b>' . $this->t('Module configuration') . ':</b><br/><pre>' . print_r($settings, TRUE) . '</pre>', $tags);
     $rendered_message = Markup::create($debug_message);
-    drupal_set_message($rendered_message);
+    $this->messenger->addStatus($rendered_message);
 
   }
 

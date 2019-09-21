@@ -6,9 +6,9 @@ use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\SessionManagerInterface;
+use Drupal\Core\TempStore\PrivateTempStoreFactory;
 use Drupal\Core\Url;
 use Drupal\shib_auth\Login\ShibSessionVars;
-use Drupal\user\PrivateTempStoreFactory;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 // Use Symfony\Component\ClassLoader\ApcClassLoader;
@@ -26,16 +26,33 @@ class CustomDataForm extends FormBase {
    * @var \Symfony\Component\ClassLoader\ApcClassLoader
    */
   protected $shib_session;
-  protected $temp_store_factory;
-  protected $session_manager;
-  protected $current_user;
-  protected $custom_data_store;
 
   /**
-   * CustomEmailForm constructor.
+   * @var \Drupal\Core\TempStore\PrivateTempStoreFactory
+   */
+  protected $temp_store_factory;
+
+  /**
+   * @var \Drupal\Core\Session\SessionManagerInterface
+   */
+  protected $session_manager;
+
+  /**
+   * @var \Drupal\Core\Session\AccountInterface
+   */
+  protected $current_user;
+
+  /**
+   * @var \Drupal\Core\TempStore\PrivateTempStore
+   */
+  protected $custom_data_store;
+
+
+  /**
+   * CustomDataForm constructor.
    *
    * @param \Drupal\shib_auth\Login\ShibSessionVars $shib_session
-   * @param \Drupal\user\PrivateTempStoreFactory $temp_store_factory
+   * @param \Drupal\Core\TempStore\PrivateTempStoreFactory $temp_store_factory
    * @param \Drupal\Core\Session\SessionManagerInterface $session_manager
    * @param \Drupal\Core\Session\AccountInterface $current_user
    */
@@ -44,7 +61,6 @@ class CustomDataForm extends FormBase {
     $this->temp_store_factory = $temp_store_factory;
     $this->session_manager = $session_manager;
     $this->current_user = $current_user;
-
     $this->custom_data_store = $this->temp_store_factory->get('shib_auth');
   }
 
@@ -54,7 +70,7 @@ class CustomDataForm extends FormBase {
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('shib_auth.shib_session_vars'),
-      $container->get('user.private_tempstore'),
+      $container->get('tempstore.private'),
       $container->get('session_manager'),
       $container->get('current_user')
     );

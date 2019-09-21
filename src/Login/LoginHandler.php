@@ -6,11 +6,12 @@ use Drupal\Component\Utility\Random;
 use Drupal\Core\Config\ImmutableConfig;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\SessionManagerInterface;
+use Drupal\Core\TempStore\PrivateTempStoreFactory;
 use Drupal\Core\Url;
 use Drupal\user\Entity\User;
-use Drupal\user\PrivateTempStoreFactory;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
@@ -25,26 +26,32 @@ class LoginHandler implements LoginHandlerInterface {
    * @var
    */
   protected $user;
+
   /**
    * @var \Drupal\Core\Entity\EntityStorageInterface
    */
   protected $user_store;
+
   /**
    * @var \Drupal\Core\Config\ImmutableConfig
    */
   protected $config;
+
   /**
    * @var \Drupal\Core\Config\ImmutableConfig
    */
   protected $adv_config;
+
   /**
    * @var \Drupal\Core\Database\Connection
    */
   protected $db;
+
   /**
    * @var \Drupal\shib_auth\Login\ShibSessionVars
    */
   protected $shib_session;
+
   /**
    * @var \Psr\Log\LoggerInterface
    */
@@ -54,6 +61,7 @@ class LoginHandler implements LoginHandlerInterface {
    * @var \Drupal\user\PrivateTempStoreFactory
    */
   protected $temp_store_factory;
+
   /**
    * @var \Drupal\user\PrivateTempStore
    */
@@ -75,6 +83,11 @@ class LoginHandler implements LoginHandlerInterface {
   protected $error_message;
 
   /**
+   * @var \Drupal\Core\Messenger\MessengerInterface
+   */
+  protected $messenger;
+
+  /**
    * MySQL error code.
    */
   const MYSQL_ER_DUP_KEY = 23000;
@@ -84,9 +97,19 @@ class LoginHandler implements LoginHandlerInterface {
    *
    * @param \Drupal\Core\Database\Connection $db
    * @param \Drupal\Core\Config\ImmutableConfig $config
-   * @param \Drupal\Core\Config\ImmutableConfig $advanced_config
+   * @param \Drupal\Core\Config\ImmutableConfig $adv_config
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $etm
+   * @param \Drupal\shib_auth\Login\ShibSessionVars $shib_session
+   * @param \Psr\Log\LoggerInterface $shib_logger
+   * @param \Drupal\Core\TempStore\PrivateTempStoreFactory $temp_store_factory
+   * @param \Drupal\Core\Session\SessionManagerInterface $session_manager
+   * @param \Drupal\Core\Session\AccountInterface $current_user
+   * @param \Drupal\Core\Messenger\MessengerInterface $messenger
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
-  public function __construct(Connection $db, ImmutableConfig $config, ImmutableConfig $adv_config, EntityTypeManagerInterface $etm, ShibSessionVars $shib_session, LoggerInterface $shib_logger, PrivateTempStoreFactory $temp_store_factory, SessionManagerInterface $session_manager, AccountInterface $current_user) {
+  public function __construct(Connection $db, ImmutableConfig $config, ImmutableConfig $adv_config, EntityTypeManagerInterface $etm, ShibSessionVars $shib_session, LoggerInterface $shib_logger, PrivateTempStoreFactory $temp_store_factory, SessionManagerInterface $session_manager, AccountInterface $current_user, MessengerInterface $messenger) {
     $this->db = $db;
     $this->config = $config;
     $this->adv_config = $adv_config;
@@ -96,6 +119,7 @@ class LoginHandler implements LoginHandlerInterface {
     $this->temp_store_factory = $temp_store_factory;
     $this->session_manager = $session_manager;
     $this->current_user = $current_user;
+    $this->messenger = $messenger;
     $this->custom_data_store = $this->temp_store_factory->get('shib_auth');
 
     // Start Session if it does not exist yet.
@@ -155,7 +179,7 @@ class LoginHandler implements LoginHandlerInterface {
       }
 
       if ($this->getErrorMessage()) {
-        drupal_set_message($this->getErrorMessage(), 'error');
+        $this->messenger->addError($this->getErrorMessage());
       }
 
       $return_url = '';
@@ -180,7 +204,6 @@ class LoginHandler implements LoginHandlerInterface {
    * @throws \Exception
    */
   private function registerNewUser($success = FALSE) {
-
     $user_data = [
       'name' => $this->shib_session->getTargetedId(),
       'mail' => $this->custom_data_store->get('custom_email'),
@@ -189,7 +212,6 @@ class LoginHandler implements LoginHandlerInterface {
     ];
 
     try {
-
       // Create Drupal user.
       $this->user = $this->user_store->create($user_data);
       if (!$results = $this->user->save()) {
@@ -216,10 +238,12 @@ class LoginHandler implements LoginHandlerInterface {
         'uid' => $this->user->id(),
         'targeted_id' => $this->shib_session->getTargetedId(),
         'idp' => $this->shib_session->getIdp(),
-        'created' => REQUEST_TIME,
+        'created' => \Drupal::time()->getRequestTime(),
       ];
-
-      if (!$success = $this->db->insert('shib_authmap')->fields($shib_data)->execute()) {
+      $success = $this->db->insert('shib_authmap')
+        ->fields($shib_data)
+        ->execute();
+      if (!$success) {
         // Throw exception if shib_authmap insert fails.
         throw new \Exception();
       }

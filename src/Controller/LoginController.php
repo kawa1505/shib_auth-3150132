@@ -52,7 +52,6 @@ class LoginController extends ControllerBase {
    * @return \Symfony\Component\HttpFoundation\RedirectResponse
    */
   public function login() {
-
     if (!empty($this->loginHandler->getShibSession()->getSessionId())) {
       // Check if there is an active drupal login.
       if (\Drupal::currentUser()->isAnonymous()) {
