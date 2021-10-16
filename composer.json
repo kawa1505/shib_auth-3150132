@@ -1,0 +1,23 @@
+{
+  "name": "drupal/shib_auth",
+  "description": "Provides user authentication with Shibboleth (both v1.3 and v2.0) as well as some authorisation features (automatic role assignment based on Shibboleth attributes).",
+  "type": "drupal-module",
+  "keywords": [
+    "Drupal"
+  ],
+  "license": "GPL-2.0+",
+  "minimum-stability": "dev",
+  "homepage": "https://www.drupal.org/project/shib_auth/",
+  "authors": [],
+  "support": {
+    "issues": "https://www.drupal.org/project/issues/shib_auth",
+    "source": "http://git.drupalcode.org/project/shib_auth"
+  },
+  "require": {
+    "php": "> 7.2",
+    "drupal/core": "^8.8 || ^9"
+  },
+  "require-dev": {
+    "roave/security-advisories": "dev-master"
+  }
+}
